@@ -1,6 +1,6 @@
 from StixExport import StixExport
 from OTXv2 import OTXv2
-from taxii_client import Client
+from taxii_client import Client, check_taxii_response
 import ConfigParser
 import datetime
 import sys
@@ -53,10 +53,12 @@ def sendTAXII(first=True):
                 mtimestamp = pulse["modified"]
             st = StixExport(pulse)
             st.build()
-            print "Sending %s" % pulse["name"]
 
-            if not client.snd_post('inbox', st.to_xml()):
-                print '######---[ Unable to Send Post ]---######'
+            # Majority of TAXII server today (2017Q1) only support STIX 1.1.1
+            st.stix_package.version = '1.1.1'
+
+            print "Sending %s" % pulse["name"]
+            print "\t %s" % check_taxii_response(client.snd_post('inbox', st.to_xml()))
 
         saveTimestamp(mtimestamp)
         print "%d new pulses" % len(pulses)
@@ -72,3 +74,4 @@ if __name__ == "__main__":
         sendTAXII(True)
     else:
         usage()
+
