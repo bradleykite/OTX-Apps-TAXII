@@ -1,7 +1,6 @@
 
 import sys
 import urllib2
-import libtaxii
 import libtaxii.clients as tc
 import libtaxii.messages_11 as tm11
 
@@ -26,7 +25,7 @@ class Client:
         self.svr_cert_pub = None  # This is typical the server CA pem file
 
         # libTAXII Support
-        self.is_https = False
+        self.is_https = True
 
         # TAXII API Support
         self.collection = None
@@ -39,9 +38,15 @@ class Client:
             tc.socket.setdefaulttimeout(60)  # in seconds
             client = tc.HttpClient()
 
+            if int(self.port) == 443 or int(self.port) == 8443:
+                client.setUseHttps(True)
+
             if self.scheme:
                 if 'https' in self.scheme.lower():
                     client.setUseHttps(True)
+
+            if self.is_https:
+                client.setUseHttps(True)
 
             if self.usr_pass:
                 client.setAuthType(client.AUTH_BASIC)
@@ -141,7 +146,7 @@ class Client:
 
             # Handle TAXII Config
             if d.get('discovery_path'):
-                self.path = str(d.get('discovery_path'))
+                self.path = str(d['discovery_path'])
             if self.path:
                 if self.path[0] == '/':
                     self.path = self.path[1:]
@@ -149,7 +154,15 @@ class Client:
                     self.path = self.path[:-1]
 
             if d.get('collection_name'):
-                self.collection = str(d.get('collection_name'))
+                self.collection = str(d['collection_name'])
+
+            # Handle TAXII Creds
+            if d.get('username'):
+                self.usr_name = d['username']
+
+            if d.get('password'):
+                self.usr_pass = d['password']
+
 
             #self._gen_client()
 
@@ -163,3 +176,15 @@ class Client:
         self.collection = collection_names
         self.path = uri
         self.gen_post(type_, xml)
+
+
+def check_taxii_response(rsp):
+
+    if hasattr(rsp, 'read'):
+        if 'SUCCESS' in rsp.read():
+            return 'TAXII server responded with status_type="SUCCESS"'
+        else:
+            return 'TAXII server Error: %s' % rsp.read()
+
+    else:
+        return 'Unknown Error: %s' % rsp
