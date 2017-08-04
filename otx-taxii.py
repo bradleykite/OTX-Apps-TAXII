@@ -70,5 +70,7 @@ def usage():
 if __name__ == "__main__":
     if sys.argv[1] == "first_run":
         sendTAXII(True)
+    elif sys.argv[1] == "check_new":
+        sendTAXII(False)
     else:
         usage()
